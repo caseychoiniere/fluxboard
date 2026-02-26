@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "cp dist/index.html dist/404.html",
+    "postbuild": "mkdir -p dist/transactions dist/accounts dist/insights dist/settings && cp dist/index.html dist/transactions/index.html && cp dist/index.html dist/accounts/index.html && cp dist/index.html dist/insights/index.html && cp dist/index.html dist/settings/index.html && cp dist/index.html dist/404.html",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
