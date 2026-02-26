@@ -1,19 +1,42 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, Account, MonthlySummary } from '../types';
+
+/**
+ * Translates technical API errors into human-readable messages.
+ */
+const parseAIError = (error: any): string => {
+  const message = error?.message || String(error);
+
+  if (message.includes("429") || message.toLowerCase().includes("quota")) {
+    return "Rate limit exceeded. Flux AI is resting, please try again in a minute.";
+  }
+  if (message.includes("403") || message.toLowerCase().includes("api key")) {
+    return "API Configuration Error. Please verify your Gemini API key in settings.";
+  }
+  if (message.includes("400")) {
+    return "The request was invalid. Try rephrasing your query.";
+  }
+  if (message.toLowerCase().includes("safety") || message.toLowerCase().includes("blocked")) {
+    return "The analysis was blocked by safety filters. Try a different request.";
+  }
+  if (message.includes("500") || message.includes("503")) {
+    return "Gemini servers are currently overwhelmed. Please try again shortly.";
+  }
+
+  return "Flux AI encountered an unexpected error. Please try again later.";
+};
 
 /**
  * Generates a financial insight based on user query and financial context.
  */
 export const generateFinancialInsight = async (
-  query: string, 
-  context: { 
-    transactions: Transaction[], 
-    accounts: Account[],
-    summary: MonthlySummary[]
-  }
+    query: string,
+    context: {
+      transactions: Transaction[],
+      accounts: Account[],
+      summary: MonthlySummary[]
+    }
 ): Promise<{ answer: string, suggestedAction?: string }> => {
-  // Always initialize right before making the call using process.env.API_KEY
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const contextString = JSON.stringify({
@@ -25,7 +48,6 @@ export const generateFinancialInsight = async (
 
   try {
     const response = await ai.models.generateContent({
-      // Using gemini-3-flash-preview for general text and Q&A tasks
       model: 'gemini-3-flash-preview',
       contents: query,
       config: {
@@ -41,11 +63,10 @@ export const generateFinancialInsight = async (
         }
       }
     });
-    // response.text is a property, not a method
     return JSON.parse(response.text || '{}');
   } catch (error) {
     console.error("Gemini Error:", error);
-    return { answer: "Error analyzing finances." };
+    return { answer: parseAIError(error) };
   }
 };
 
@@ -53,16 +74,15 @@ export const generateFinancialInsight = async (
  * Performs a deep analysis of historical financial data and provides patterns and forecasts.
  */
 export const getDeepAnalysis = async (
-  context: { 
-    transactions: Transaction[], 
-    summary: MonthlySummary[] 
-  }
+    context: {
+      transactions: Transaction[],
+      summary: MonthlySummary[]
+    }
 ): Promise<{
   patterns: { title: string, description: string, impact: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL' }[],
   forecast: { month: string, predictedAmount: number }[],
   summary: string
 }> => {
-  // Always initialize right before making the call using process.env.API_KEY
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const prompt = `Analyze the 9-month financial history provided. 
@@ -72,7 +92,6 @@ export const getDeepAnalysis = async (
 
   try {
     const response = await ai.models.generateContent({
-      // Using gemini-3-pro-preview for complex reasoning and deep analysis
       model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
@@ -110,10 +129,10 @@ export const getDeepAnalysis = async (
         }
       }
     });
-    // response.text is a property, not a method
     return JSON.parse(response.text || '{}');
   } catch (error) {
     console.error("Gemini Deep Analysis Error:", error);
-    throw error;
+    // Throw a human-readable error string
+    throw new Error(parseAIError(error));
   }
 };
