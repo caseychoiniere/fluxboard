@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Filter, Download, History, RotateCw, UploadCloud, Plus, Loader2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, Filter, Download, History, RotateCw, UploadCloud, Plus, Loader2, X, Calendar, DollarSign, ListFilter } from 'lucide-react';
 import { MOCK_TRANSACTIONS } from '../constants';
 import { RecurringRules } from './RecurringRules';
 import { TransactionImport } from './TransactionImport';
@@ -13,20 +13,55 @@ export const Transactions: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   
-  // Local state for transactions to support "adding" new ones in this mock environment
+  // Filter States
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [amountRange, setAmountRange] = useState({ min: '', max: '' });
+  const [statusFilter, setStatusFilter] = useState<'all' | 'recurring' | 'one-time'>('all');
+
+  // Local state for transactions to support "adding" new ones
   const [transactions, setTransactions] = useState(MOCK_TRANSACTIONS);
 
-  const filteredTransactions = transactions.filter(t => 
-    t.merchant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
+      // Search term filter
+      const matchesSearch = 
+        t.merchant.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.description.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (!matchesSearch) return false;
+
+      // Date range filter
+      if (dateRange.start && t.date < dateRange.start) return false;
+      if (dateRange.end && t.date > dateRange.end) return false;
+
+      // Amount range filter (using absolute value for easier range filtering of expenses)
+      const absAmount = Math.abs(t.amount);
+      if (amountRange.min && absAmount < parseFloat(amountRange.min)) return false;
+      if (amountRange.max && absAmount > parseFloat(amountRange.max)) return false;
+
+      // Status filter
+      if (statusFilter === 'recurring' && !t.isRecurring) return false;
+      if (statusFilter === 'one-time' && t.isRecurring) return false;
+
+      return true;
+    });
+  }, [transactions, searchTerm, dateRange, amountRange, statusFilter]);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDateRange({ start: '', end: '' });
+    setAmountRange({ min: '', max: '' });
+    setStatusFilter('all');
+  };
+
+  const hasActiveFilters = searchTerm !== '' || dateRange.start !== '' || dateRange.end !== '' || amountRange.min !== '' || amountRange.max !== '' || statusFilter !== 'all';
 
   const handleExport = () => {
     if (filteredTransactions.length === 0) return;
     
     setIsExporting(true);
-    // Slight delay to show the "Exporting" state for better UX feedback
     setTimeout(() => {
       exportTransactionsToCSV(filteredTransactions);
       setIsExporting(false);
@@ -34,7 +69,7 @@ export const Transactions: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
@@ -53,8 +88,19 @@ export const Transactions: React.FC = () => {
           >
             <UploadCloud size={16} /> Import CSV
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 text-sm font-medium hover:bg-slate-50">
-            <Filter size={16} /> Filter
+          <button 
+            onClick={() => setShowFilterPanel(!showFilterPanel)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+              showFilterPanel || hasActiveFilters 
+                ? 'bg-brand-50 border-brand-200 text-brand-700' 
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Filter size={16} /> 
+            Filters
+            {hasActiveFilters && (
+              <span className="ml-1 w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
+            )}
           </button>
           <button 
             onClick={handleExport}
@@ -66,6 +112,94 @@ export const Transactions: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* Filter Panel */}
+      {showFilterPanel && activeTab === 'history' && (
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <ListFilter size={18} className="text-brand-500" />
+              Advanced Filters
+            </h3>
+            <button 
+              onClick={clearFilters}
+              className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors"
+            >
+              Clear All Filters
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Date Range */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <Calendar size={12} /> Date Range
+              </label>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="date"
+                  value={dateRange.start}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-500/20"
+                />
+                <span className="text-slate-400 text-xs">to</span>
+                <input 
+                  type="date"
+                  value={dateRange.end}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Amount Range */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <DollarSign size={12} /> Amount Range
+              </label>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="number"
+                  placeholder="Min"
+                  value={amountRange.min}
+                  onChange={(e) => setAmountRange(prev => ({ ...prev, min: e.target.value }))}
+                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-500/20"
+                />
+                <span className="text-slate-400 text-xs">-</span>
+                <input 
+                  type="number"
+                  placeholder="Max"
+                  value={amountRange.max}
+                  onChange={(e) => setAmountRange(prev => ({ ...prev, max: e.target.value }))}
+                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <RotateCw size={12} /> Status
+              </label>
+              <div className="flex p-1 bg-slate-50 rounded-lg border border-slate-200">
+                {(['all', 'recurring', 'one-time'] as const).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all capitalize ${
+                      statusFilter === status 
+                        ? 'bg-white text-brand-600 shadow-sm border border-slate-100' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {status.replace('-', ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="border-b border-slate-200">
@@ -98,17 +232,28 @@ export const Transactions: React.FC = () => {
 
       {activeTab === 'history' ? (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-            <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <input 
-                type="text" 
-                placeholder="Search merchants, categories..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                />
-            </div>
+            <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative max-w-md w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input 
+                    type="text" 
+                    placeholder="Search merchants, categories..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                  />
+                  {searchTerm && (
+                    <button 
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+              </div>
+              <div className="text-xs text-slate-400 font-medium">
+                {filteredTransactions.length} of {transactions.length} transactions
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -153,7 +298,16 @@ export const Transactions: React.FC = () => {
                   {filteredTransactions.length === 0 && (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                        No transactions found matching "{searchTerm}"
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Search size={32} className="text-slate-300" />
+                          <p>No transactions found matching your filters</p>
+                          <button 
+                            onClick={clearFilters}
+                            className="text-brand-600 text-xs font-bold hover:underline"
+                          >
+                            Clear all filters
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )}

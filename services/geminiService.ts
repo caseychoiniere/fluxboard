@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, Account, MonthlySummary } from '../types';
 
@@ -6,7 +7,7 @@ import { Transaction, Account, MonthlySummary } from '../types';
  */
 const parseAIError = (error: any): string => {
   const message = error?.message || String(error);
-
+  
   if (message.includes("429") || message.toLowerCase().includes("quota")) {
     return "Rate limit exceeded. Flux AI is resting, please try again in a minute.";
   }
@@ -22,7 +23,7 @@ const parseAIError = (error: any): string => {
   if (message.includes("500") || message.includes("503")) {
     return "Gemini servers are currently overwhelmed. Please try again shortly.";
   }
-
+  
   return "Flux AI encountered an unexpected error. Please try again later.";
 };
 
@@ -30,12 +31,12 @@ const parseAIError = (error: any): string => {
  * Generates a financial insight based on user query and financial context.
  */
 export const generateFinancialInsight = async (
-    query: string,
-    context: {
-      transactions: Transaction[],
-      accounts: Account[],
-      summary: MonthlySummary[]
-    }
+  query: string, 
+  context: { 
+    transactions: Transaction[], 
+    accounts: Account[],
+    summary: MonthlySummary[]
+  }
 ): Promise<{ answer: string, suggestedAction?: string }> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -74,10 +75,10 @@ export const generateFinancialInsight = async (
  * Performs a deep analysis of historical financial data and provides patterns and forecasts.
  */
 export const getDeepAnalysis = async (
-    context: {
-      transactions: Transaction[],
-      summary: MonthlySummary[]
-    }
+  context: { 
+    transactions: Transaction[], 
+    summary: MonthlySummary[] 
+  }
 ): Promise<{
   patterns: { title: string, description: string, impact: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL' }[],
   forecast: { month: string, predictedAmount: number }[],
