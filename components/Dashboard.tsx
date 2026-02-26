@@ -145,42 +145,44 @@ export const Dashboard: React.FC = () => {
             <h3 className="text-lg font-bold text-slate-800">Recent Transactions</h3>
             <button className="text-sm text-brand-600 font-medium hover:text-brand-700">View All</button>
           </div>
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 font-medium">
-            <tr>
-              <th className="px-6 py-4">Date</th>
-              <th className="px-6 py-4">Merchant</th>
-              <th className="px-6 py-4">Category</th>
-              <th className="px-6 py-4 text-right">Amount</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-            {transactions.slice(0, 5).map(t => (
-                <tr key={t.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-4 text-slate-500">{t.date}</td>
-                  <td className="px-6 py-4 font-medium text-slate-900">{t.merchant}</td>
-                  <td className="px-6 py-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-500 font-medium">
+              <tr>
+                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Merchant</th>
+                <th className="px-6 py-4">Category</th>
+                <th className="px-6 py-4 text-right">Amount</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+              {transactions.slice(0, 5).map(t => (
+                  <tr key={t.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-6 py-4 text-slate-500">{t.date}</td>
+                    <td className="px-6 py-4 font-medium text-slate-900">{t.merchant}</td>
+                    <td className="px-6 py-4">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
                     {t.category}
                   </span>
-                  </td>
-                  <td className={`px-6 py-4 text-right font-medium ${t.amount > 0 ? 'text-green-600' : 'text-slate-900'}`}>
-                    {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString('en-US', { style: 'currency', currency: t.currency })}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                        onClick={() => setEditingTransaction(t)}
-                        className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                        title="Edit Transaction"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-            ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td className={`px-6 py-4 text-right font-medium ${t.amount > 0 ? 'text-green-600' : 'text-slate-900'}`}>
+                      {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString('en-US', { style: 'currency', currency: t.currency })}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                          onClick={() => setEditingTransaction(t)}
+                          className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          title="Edit Transaction"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+              ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
   );
