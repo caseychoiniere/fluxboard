@@ -1,0 +1,5 @@
+{
+  "name": "Fluxboard",
+  "description": "An AI-powered personal finance dashboard that provides insights, spending analysis, and natural language queries using Gemini.",
+  "requestFramePermissions": []
+}
